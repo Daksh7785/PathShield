@@ -4,12 +4,12 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import rateLimit from 'express-rate-limit';
 
 import { connectDB } from './config/db';
 import citiesRouter from './routes/cities';
 import simulationsRouter from './routes/simulations';
 import trafficRouter from './routes/traffic';
+import { requestLogger, gatewayLimiter, gatewayCache } from './api-gateway';
 
 dotenv.config();
 
@@ -30,17 +30,13 @@ app.use(helmet({
   contentSecurityPolicy: false // Relax for development/GIS map assets
 }));
 app.use(express.json({ limit: '50mb' }));
+app.use(requestLogger);
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api', limiter);
+// Rate Limiting on versioned endpoints
+app.use('/api/v1', gatewayLimiter);
 
-// API Routes
-app.use('/api/v1/cities', citiesRouter);
+// API Routes with Caching on metadata query reads
+app.use('/api/v1/cities', gatewayCache(30), citiesRouter);
 app.use('/api/v1/simulations', simulationsRouter);
 app.use('/api/v1/traffic', trafficRouter);
 

@@ -13,8 +13,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from inference.predictor import RoadPredictor
 from models.vit_segmentation import VisionTransformerSegmentation
+from inference.orchestrator import AIOrchestrator
 
 app = FastAPI(title="PathShield AI Engine", version="1.0.0")
+orchestrator = AIOrchestrator()
+
 
 # Lazy load predictor
 _predictor = None
@@ -97,6 +100,36 @@ def benchmark():
         "selected_model": "ViT-B/32"
     }
 
+class OrchestrateRequest(BaseModel):
+    task_type: str
+    width: int
+    height: int
+    min_confidence: Optional[float] = 0.85
+
+class RecordDriftRequest(BaseModel):
+    calculated_iou: float
+
+class RollbackRequest(BaseModel):
+    model_name: str
+    target_version: str
+
+@app.post("/orchestrate")
+def post_orchestrate(req: OrchestrateRequest):
+    return orchestrator.route_inference(req.task_type, (req.width, req.height), req.min_confidence)
+
+@app.post("/drift/record")
+def post_record_drift(req: RecordDriftRequest):
+    return orchestrator.drift_detector.record_prediction(req.calculated_iou)
+
+@app.post("/registry/rollback")
+def post_rollback(req: RollbackRequest):
+    try:
+        msg = orchestrator.registry.rollback_model(req.model_name, req.target_version)
+        return {"status": "success", "message": msg}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
+

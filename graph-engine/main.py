@@ -18,8 +18,11 @@ from topology.graph_builder import skeleton_to_graph
 from analysis.centrality import calculate_betweenness_centrality, calculate_closeness_centrality
 from analysis.stress_test import StressTestEngine
 from analysis.routing import shortest_path, k_shortest_paths
+from topology.digital_twin import DigitalTwinStore
 
 app = FastAPI(title="PathShield Graph Engine", version="1.0.0")
+twin_store = DigitalTwinStore()
+
 
 class SkeletonizeRequest(BaseModel):
     mask_base64: str
@@ -227,6 +230,65 @@ def route(req: RouteRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Routing failed: {str(e)}")
 
+class GraphMetricsRequest(BaseModel):
+    graph_json: Dict
+
+class SnapshotRequest(BaseModel):
+    city_id: str
+    nodes_count: int
+    edges_count: int
+    active_hazards_count: int
+    traffic_layers: Dict[str, float]
+
+class ReplayRequest(BaseModel):
+    city_id: str
+    target_time: float
+
+@app.post("/analytics/graph-metrics")
+def get_graph_metrics(req: GraphMetricsRequest):
+    try:
+        G = _deserialize_graph(req.graph_json)
+        pr_scores = nx.pagerank(G) if G.number_of_nodes() > 0 else {}
+        cc_scores = nx.closeness_centrality(G) if G.number_of_nodes() > 0 else {}
+        components = list(nx.connected_components(G))
+        lcc_size = len(max(components, key=len)) if components else 0
+        fragmentation_ratio = len(components) / G.number_of_nodes() if G.number_of_nodes() > 0 else 0.0
+        
+        return {
+            "pagerank": pr_scores,
+            "closeness": cc_scores,
+            "connected_components_count": len(components),
+            "lcc_size": lcc_size,
+            "fragmentation_ratio": fragmentation_ratio
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Graph metrics failed: {str(e)}")
+
+@app.post("/digital-twin/snapshot")
+def capture_snapshot(req: SnapshotRequest):
+    try:
+        snap = twin_store.capture_snapshot(
+            req.city_id,
+            req.nodes_count,
+            req.edges_count,
+            req.active_hazards_count,
+            req.traffic_layers
+        )
+        return {"status": "success", "snapshot": snap}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/digital-twin/replay")
+def replay_snapshot(req: ReplayRequest):
+    try:
+        snap = twin_store.replay_state_at(req.city_id, req.target_time)
+        if not snap:
+            return {"status": "empty", "message": "No timeline history found."}
+        return {"status": "success", "snapshot": snap}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8003)
+
