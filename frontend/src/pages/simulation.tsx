@@ -60,6 +60,7 @@ export default function SimulationPage() {
   const isRtl = lang === 'ar';
 
   const [cityId, setCityId] = useState<string>('bengaluru');
+  const [citiesList, setCitiesList] = useState<any[]>([]);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [center, setCenter] = useState<[number, number]>([12.9716, 77.5946]);
@@ -77,6 +78,25 @@ export default function SimulationPage() {
   const [results, setResults] = useState<SimulationResults | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [disabledNodes, setDisabledNodes] = useState<number[]>([]);
+
+  useEffect(() => {
+    // Fetch cities list
+    axios.get('http://localhost:8000/api/v1/cities')
+      .then(res => {
+        setCitiesList(res.data || []);
+      })
+      .catch(err => {
+        console.warn('Failed to load cities list.', err);
+      });
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const cityParam = params.get('city');
+      if (cityParam) {
+        setCityId(cityParam);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Fetch nodes & edges
@@ -181,8 +201,9 @@ export default function SimulationPage() {
             onChange={(e) => setCityId(e.target.value)}
             className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none text-slate-300"
           >
-            <option value="bengaluru">Bengaluru (Cartosat-3)</option>
-            <option value="delhi">Delhi (Sentinel-2)</option>
+            {citiesList.map((c) => (
+              <option key={c.id} value={c.id}>{c.name} ({c.satellite_source || 'OSM'})</option>
+            ))}
           </select>
         </div>
       </header>
