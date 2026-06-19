@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  postgis-db:
+    image: postgis/postgis:15-3.3
+    container_name: pathshield-postgis
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: routeresilience
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+
+  mongodb-db:
+    image: mongo:6.0
+    container_name: pathshield-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: pathshield-redis
+    ports:
+      - "6379:6379"
+
+  backend-gateway:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: pathshield-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - MONGO_URI=mongodb://mongodb-db:27017/routeresilience
+      - REDIS_URL=redis://redis:6379/0
+      - GRAPH_ENGINE_URL=http://graph-engine:8003
+      - GIS_ENGINE_URL=http://gis-engine:8002
+      - AI_ENGINE_URL=http://ai-engine:8001
+    depends_on:
+      - mongodb-db
+      - redis
+
+  ai-engine:
+    build:
+      context: ../ai-engine
+      dockerfile: Dockerfile
+    container_name: pathshield-ai-engine
+    ports:
+      - "8001:8001"
+    environment:
+      - MODEL_CHECKPOINT_PATH=models/checkpoints/model_best.pth
+
+  gis-engine:
+    build:
+      context: ../gis-engine
+      dockerfile: Dockerfile
+    container_name: pathshield-gis-engine
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgis-db
+
+  graph-engine:
+    build:
+      context: ../graph-engine
+      dockerfile: Dockerfile
+    container_name: pathshield-graph-engine
+    ports:
+      - "8003:8003"
+
+  frontend-dashboard:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: pathshield-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-gateway
+
+volumes:
+  postgis_data:
+  mongodb_data:
