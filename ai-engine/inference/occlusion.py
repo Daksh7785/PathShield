@@ -108,7 +108,7 @@ class SyntheticOcclusionGenerator:
         cloud_mask = cv2.GaussianBlur(cloud_mask, (31, 31), 15)
 
         # Cloud color (off-white/light grey)
-        cloud_color = np.full_like(result, 230.0)
+        cloud_color = np.full_like(result, 230.0) 
         
         alpha = cloud_mask[:, :, np.newaxis]
         result = (1.0 - alpha) * result + alpha * cloud_color

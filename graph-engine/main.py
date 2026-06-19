@@ -167,6 +167,10 @@ def stress_test(req: StressTestRequest):
             if req.seed_node is None:
                 raise HTTPException(status_code=400, detail="seed_node is required for cascading failure")
             results = engine.cascading_failure(req.seed_node, req.iterations)
+        elif req.scenario_type == "sir_percolation":
+            if req.seed_node is None:
+                raise HTTPException(status_code=400, detail="seed_node is required for SIR percolation simulation")
+            results = engine.simulate_percolation_sir(req.seed_node, steps=req.iterations or 5)
         elif req.scenario_type == "random":
             results = engine.random_failure(req.failure_probability)
         else:
@@ -287,6 +291,21 @@ def replay_snapshot(req: ReplayRequest):
         return {"status": "success", "snapshot": snap}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class ShockIndexRequest(BaseModel):
+    graph_json: Dict
+    node_id: int
+    steps: Optional[int] = 5
+
+@app.post("/analytics/shock-index")
+def get_shock_index(req: ShockIndexRequest):
+    try:
+        G = _deserialize_graph(req.graph_json)
+        engine = StressTestEngine(G)
+        score = engine.compute_shock_index(req.node_id, steps=req.steps)
+        return {"node_id": req.node_id, "shock_index": score}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Shock Index computation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

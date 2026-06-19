@@ -223,3 +223,85 @@ class StressTestEngine:
             report.append(res)
             
         return report
+
+    def compute_shock_index(self, node_id: int, steps: int = 5) -> float:
+        """
+        Calculate the Shock Index of a node:
+        Shock Index = Delta(connectivity loss) * Delta(detour inflation) * cascade depth
+        """
+        if node_id not in self.G:
+            return 0.0
+            
+        # Run a cascade starting at this node
+        casc_res = self.cascading_failure(node_id, iterations=steps)
+        
+        # Connectivity loss fraction: [0, 1]
+        connectivity_loss = casc_res["lcc_loss_percent"] / 100.0
+        
+        # Detour inflation factor: relative average shortest path length increase
+        detour_inflation = casc_res["path_increase_factor"]
+        if detour_inflation == float('inf'):
+            detour_inflation = 10.0 # Upper bound representation
+            
+        cascade_depth = len(casc_res.get("failures_sequence", [node_id]))
+        
+        shock_index = connectivity_loss * detour_inflation * cascade_depth
+        return round(float(shock_index), 4)
+
+    def simulate_percolation_sir(self, seed_node: int, beta: float = 0.4, gamma: float = 0.2, steps: int = 5) -> dict:
+        """
+        Time-based simulation of disaster propagation using the SIR (Susceptible-Infected-Recovered)
+        epidemic percolation model:
+        - Susceptible (S): Operational infrastructure/nodes.
+        - Infected (I): Active disaster zones (flooded, fire, collision).
+        - Recovered (R): Defunct/destroyed infrastructure.
+        """
+        # Initialize node states
+        states = {node: "S" for node in self.G.nodes()}
+        if seed_node in states:
+            states[seed_node] = "I"
+            
+        timeline = []
+        
+        # Record initial state
+        timeline.append({
+            "step": 0,
+            "S": list(states.values()).count("S"),
+            "I": list(states.values()).count("I"),
+            "R": list(states.values()).count("R"),
+            "infected_nodes": [n for n, s in states.items() if s == "I"],
+            "recovered_nodes": [n for n, s in states.items() if s == "R"]
+        })
+        
+        # Random number generator with fixed seed for determinism in checks
+        rng = np.random.default_rng(seed_node)
+        
+        for step in range(1, steps + 1):
+            next_states = states.copy()
+            
+            for node in self.G.nodes():
+                if states[node] == "I":
+                    # Transmission to Susceptible neighbors
+                    for neighbor in self.G.neighbors(node):
+                        if states[neighbor] == "S" and rng.random() < beta:
+                            next_states[neighbor] = "I"
+                    # Recovery to defunct state
+                    if rng.random() < gamma:
+                        next_states[node] = "R"
+                        
+            states = next_states
+            timeline.append({
+                "step": step,
+                "S": list(states.values()).count("S"),
+                "I": list(states.values()).count("I"),
+                "R": list(states.values()).count("R"),
+                "infected_nodes": [n for n, s in states.items() if s == "I"],
+                "recovered_nodes": [n for n, s in states.items() if s == "R"]
+            })
+            
+        return {
+            "seed_node": seed_node,
+            "final_states": states,
+            "timeline": timeline
+        }
+

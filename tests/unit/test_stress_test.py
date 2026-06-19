@@ -59,3 +59,29 @@ def test_resilience_index_clipped_0_to_1(stress_engine):
     
     r2 = stress_engine.resilience_index(10.0, float('inf')) # Disconnected path
     assert r2 == 0.0, f"Expected index of 0.0, got {r2}"
+
+
+def test_compute_shock_index(stress_engine):
+    """Verify that compute_shock_index calculates a valid positive score."""
+    # Compute shock index on node 0
+    score = stress_engine.compute_shock_index(0, steps=3)
+    assert isinstance(score, float)
+    assert score >= 0.0
+
+
+def test_simulate_percolation_sir(stress_engine):
+    """Verify that simulate_percolation_sir runs and updates SIR states over time."""
+    # Run SIR simulation starting at node 0
+    res = stress_engine.simulate_percolation_sir(0, beta=0.5, gamma=0.2, steps=3)
+    
+    assert res["seed_node"] == 0
+    assert "timeline" in res
+    assert len(res["timeline"]) == 4  # step 0, 1, 2, 3
+    
+    # Confirm S, I, R counters exist at final step
+    final_step = res["timeline"][-1]
+    assert "S" in final_step
+    assert "I" in final_step
+    assert "R" in final_step
+    assert final_step["S"] + final_step["I"] + final_step["R"] == 100
+
