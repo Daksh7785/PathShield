@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ShieldAlert, AlertOctagon, RefreshCw, BarChart2, Play, Info } from 'lucide-react';
 import axios from 'axios';
 import { Language, languages, translations } from '../utils/i18n';
+import { API_BASE } from '../config/api';
 
 // Dynamically load the Leaflet MapComponent
 const MapComponent = dynamic(() => import('../components/MapComponent'), { ssr: false });
@@ -81,7 +82,7 @@ export default function SimulationPage() {
 
   useEffect(() => {
     // Fetch cities list
-    axios.get('http://localhost:8000/api/v1/cities')
+    axios.get(`${API_BASE}/api/v1/cities`)
       .then(res => {
         setCitiesList(res.data || []);
       })
@@ -100,7 +101,7 @@ export default function SimulationPage() {
 
   useEffect(() => {
     // Fetch nodes & edges
-    axios.get(`http://localhost:8000/api/v1/cities/${cityId}`)
+    axios.get(`${API_BASE}/api/v1/cities/${cityId}`)
       .then(res => {
         const cityData = res.data;
         setNodes(cityData.nodes || []);
@@ -148,7 +149,7 @@ export default function SimulationPage() {
       setDisabledNodes(flooded);
     }
 
-    axios.post(`http://localhost:8000/api/v1/simulations/${cityId}/stress-test`, payload)
+    axios.post(`${API_BASE}/api/v1/simulations/${cityId}/stress-test`, payload)
       .then(res => {
         setResults(res.data);
         setLoading(false);

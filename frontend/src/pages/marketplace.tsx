@@ -224,7 +224,6 @@ export default function MarketplacePage() {
                 </button>
               ))}
             </div>
-
             {/* API Playground / Sandbox */}
             <div className="lg:col-span-2 flex flex-col gap-6 bg-slate-900/40 border border-slate-800 p-6 rounded-2xl">
               <div>
@@ -232,7 +231,7 @@ export default function MarketplacePage() {
                   <Terminal className="w-4 h-4 text-primary" /> {t('playgroundTitle')}
                 </h3>
                 <code className="text-xs font-mono text-slate-300 bg-slate-950 px-2 py-1 rounded select-all">
-                  {apis[selectedApiIndex].method} http://localhost:8000{apis[selectedApiIndex].path}
+                  {apis[selectedApiIndex].method} {typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000'}{apis[selectedApiIndex].path}
                 </code>
               </div>
 

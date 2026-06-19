@@ -5,6 +5,7 @@ import { Activity, Layers, ArrowLeftRight, Settings, Eye, Zap, Search, AlertTria
 import axios from 'axios';
 import CopilotChat from '../components/CopilotChat';
 import { Language, languages, translations } from '../utils/i18n';
+import { API_BASE } from '../config/api';
 
 // Dynamically load the Leaflet MapComponent to avoid SSR window errors
 const MapComponent = dynamic(() => import('../components/MapComponent'), {
@@ -88,7 +89,7 @@ export default function GisPage() {
 
   // Fetch cities list on mount and check query params
   useEffect(() => {
-    axios.get('http://localhost:8000/api/v1/cities')
+    axios.get(`${API_BASE}/api/v1/cities`)
       .then(res => {
         setCitiesList(res.data || []);
       })
@@ -107,7 +108,7 @@ export default function GisPage() {
 
   useEffect(() => {
     // Fetch nodes & edges for selected city
-    axios.get(`http://localhost:8000/api/v1/cities/${cityId}`)
+    axios.get(`${API_BASE}/api/v1/cities/${cityId}`)
       .then(res => {
         const cityData = res.data;
         setNodes(cityData.nodes || []);
@@ -138,7 +139,7 @@ export default function GisPage() {
 
   // Load disasters and traffic data
   useEffect(() => {
-    axios.get('http://localhost:8000/api/v1/simulations/feed/disasters')
+    axios.get(`${API_BASE}/api/v1/simulations/feed/disasters`)
       .then(res => {
         setDisasters(res.data || []);
       })
@@ -148,7 +149,7 @@ export default function GisPage() {
   }, []);
 
   useEffect(() => {
-    axios.get(`http://localhost:8000/api/v1/traffic/${cityId}/congestion`)
+    axios.get(`${API_BASE}/api/v1/traffic/${cityId}/congestion`)
       .then(res => {
         setCongestion(res.data.congestion || {});
         setIncidents(res.data.incidents || []);
@@ -198,7 +199,7 @@ export default function GisPage() {
         
         // 3. Post to API Gateway to create the city network dynamically
         const name = searchQuery.split(',')[0].trim();
-        const osmRes = await axios.post('http://localhost:8000/api/v1/cities/osm', {
+        const osmRes = await axios.post(`${API_BASE}/api/v1/cities/osm`, {
           city_name: name,
           bbox: bbox
         });
@@ -241,7 +242,7 @@ export default function GisPage() {
         setZoom(13);
         
         try {
-          const osmRes = await axios.post('http://localhost:8000/api/v1/cities/osm', {
+          const osmRes = await axios.post(`${API_BASE}/api/v1/cities/osm`, {
             city_name: name,
             bbox: bbox
           });
@@ -268,7 +269,7 @@ export default function GisPage() {
     }
     
     setRoutingError(null);
-    axios.post(`http://localhost:8000/api/v1/simulations/${cityId}/route`, {
+    axios.post(`${API_BASE}/api/v1/simulations/${cityId}/route`, {
       source_node: Number(sourceNode),
       target_node: Number(targetNode)
     })

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 
 interface Message {
   sender: 'user' | 'copilot';
@@ -25,7 +26,7 @@ export default function CopilotChat({ cityId = 'bengaluru' }: { cityId?: string 
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/v1/simulations/feed/copilot', {
+      const response = await axios.post(`${API_BASE}/api/v1/simulations/feed/copilot`, {
         query: userQuery,
         cityId
       });

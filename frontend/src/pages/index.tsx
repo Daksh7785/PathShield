@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Activity, Map, ShieldAlert, Award, ChevronRight, BarChart2 } from 'lucide-react';
 import axios from 'axios';
 import { Language, languages, translations } from '../utils/i18n';
+import { API_BASE } from '../config/api';
 
 interface CityMetadata {
   id: string;
@@ -42,7 +43,7 @@ export default function IndexPage() {
   const isRtl = lang === 'ar';
 
   useEffect(() => {
-    axios.get('http://localhost:8000/api/v1/cities')
+    axios.get(`${API_BASE}/api/v1/cities`)
       .then(res => {
         setCities(res.data);
         setLoading(false);
