@@ -34,3 +34,13 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 Thumbs.db
+
+# Generated / processed data directory
+data/
+
+# Temporary test and debug scripts (session artifacts)
+scripts/test_*.ps1
+scripts/test_*.sh
+
+# TypeScript build info cache
+*.tsbuildinfo
