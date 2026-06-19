@@ -12,6 +12,8 @@
 [![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-Overpass-7EBC6F?style=flat-square&logo=openstreetmap)](https://overpassapi.de)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
+🚀 **Live Production Demo**: [https://pathshield-global.vercel.app](https://pathshield-global.vercel.app)
+
 </div>
 
 ---
@@ -283,6 +285,7 @@ cd frontend && npm run dev
 ### 5. Access the Platform
 | Service | URL |
 |---------|-----|
+| ⚡ **Live Vercel Production** | **[https://pathshield-global.vercel.app](https://pathshield-global.vercel.app)** |
 | 🌐 Frontend Dashboard | http://localhost:3000 |
 | 🗺️ GIS Map | http://localhost:3000/gis |
 | 🌋 Simulation Panel | http://localhost:3000/simulation |
