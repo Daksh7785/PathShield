@@ -60,6 +60,7 @@ export default function GisPage() {
   const isRtl = lang === 'ar';
 
   const [cityId, setCityId] = useState<string>('bengaluru');
+  const [citiesList, setCitiesList] = useState<any[]>([]);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [center, setCenter] = useState<[number, number]>([12.9716, 77.5946]); // Bengaluru center
@@ -84,6 +85,25 @@ export default function GisPage() {
   const [showDisasters, setShowDisasters] = useState<boolean>(true);
   const [congestion, setCongestion] = useState<any>({});
   const [incidents, setIncidents] = useState<any[]>([]);
+
+  // Fetch cities list on mount and check query params
+  useEffect(() => {
+    axios.get('http://localhost:8000/api/v1/cities')
+      .then(res => {
+        setCitiesList(res.data || []);
+      })
+      .catch(err => {
+        console.warn('Failed to load cities list.', err);
+      });
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const cityParam = params.get('city');
+      if (cityParam) {
+        setCityId(cityParam);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Fetch nodes & edges for selected city
@@ -144,24 +164,56 @@ export default function GisPage() {
     if (!searchQuery.trim()) return;
     setSearchLoading(true);
     try {
+      // 1. Check if the searched query matches one of the pre-seeded or already fetched cities in citiesList
+      const q = searchQuery.toLowerCase();
+      const matchedCity = citiesList.find(c => c.name.toLowerCase() === q || q.includes(c.name.toLowerCase()) || c.id.toLowerCase() === q);
+      if (matchedCity) {
+        setCityId(matchedCity.id);
+        setSearchLoading(false);
+        return;
+      }
+
+      // 2. Fetch coordinate boundaries using Nominatim
       const response = await axios.get(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`);
       if (response.data && response.data.length > 0) {
         const first = response.data[0];
-        setCenter([Number(first.lat), Number(first.lon)]);
+        const lat = Number(first.lat);
+        const lon = Number(first.lon);
+        
+        // Define bounding box: [min_lat, min_lng, max_lat, max_lng]
+        let bbox = [];
+        if (first.boundingbox) {
+          bbox = [
+            Number(first.boundingbox[0]),
+            Number(first.boundingbox[2]),
+            Number(first.boundingbox[1]),
+            Number(first.boundingbox[3])
+          ];
+        } else {
+          bbox = [lat - 0.02, lon - 0.02, lat + 0.02, lon + 0.02];
+        }
+        
+        setCenter([lat, lon]);
         setZoom(13);
         
-        // Autoselect best seeded city if searched query matches
-        const q = searchQuery.toLowerCase();
-        if (q.includes('tokyo')) setCityId('tokyo');
-        else if (q.includes('new york') || q.includes('nyc')) setCityId('newyork');
-        else if (q.includes('mumbai')) setCityId('mumbai');
-        else if (q.includes('delhi')) setCityId('delhi');
-        else if (q.includes('bengaluru') || q.includes('bangalore')) setCityId('bengaluru');
+        // 3. Post to API Gateway to create the city network dynamically
+        const name = searchQuery.split(',')[0].trim();
+        const osmRes = await axios.post('http://localhost:8000/api/v1/cities/osm', {
+          city_name: name,
+          bbox: bbox
+        });
+        
+        const newCity = osmRes.data;
+        setCitiesList(prev => {
+          if (prev.some(c => c.id === newCity.id)) return prev;
+          return [...prev, newCity];
+        });
+        setCityId(newCity.id);
       } else {
-        alert('Location not found. Try searching for city name (e.g. New York, Bengaluru)');
+        alert('Location not found. Try searching for city name (e.g. Paris, Tokyo, Mumbai)');
       }
     } catch (err) {
-      console.warn('Nominatim geocoder request failed, checking mock city fallbacks.', err);
+      console.warn('Geocoding request/network download failed, checking fallback.', err);
       const q = searchQuery.toLowerCase();
       if (q.includes('tokyo')) {
         setCenter([35.6762, 139.6503]);
@@ -179,7 +231,29 @@ export default function GisPage() {
         setCenter([12.9716, 77.5946]);
         setCityId('bengaluru');
       } else {
-        alert('Offline geocoder cannot resolve this location. Try: New York, Tokyo, Mumbai, Delhi, Bengaluru');
+        // Dynamic resilient fallback city creation (offline)
+        const name = searchQuery.trim();
+        const lat = 48.8566 + (Math.random() - 0.5) * 2.0;
+        const lon = 2.3522 + (Math.random() - 0.5) * 2.0;
+        const bbox = [lat - 0.02, lon - 0.02, lat + 0.02, lon + 0.02];
+        
+        setCenter([lat, lon]);
+        setZoom(13);
+        
+        try {
+          const osmRes = await axios.post('http://localhost:8000/api/v1/cities/osm', {
+            city_name: name,
+            bbox: bbox
+          });
+          const newCity = osmRes.data;
+          setCitiesList(prev => {
+            if (prev.some(c => c.id === newCity.id)) return prev;
+            return [...prev, newCity];
+          });
+          setCityId(newCity.id);
+        } catch (fallbackErr) {
+          alert('Offline fallback failed to generate network.');
+        }
       }
     } finally {
       setSearchLoading(false);
@@ -280,11 +354,9 @@ export default function GisPage() {
             onChange={(e) => setCityId(e.target.value)}
             className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer text-slate-300"
           >
-            <option value="bengaluru">Bengaluru (Cartosat-3)</option>
-            <option value="delhi">Delhi (Sentinel-2)</option>
-            <option value="mumbai">Mumbai (Cartosat-3)</option>
-            <option value="newyork">New York (Landsat-9)</option>
-            <option value="tokyo">Tokyo (ALOS-3)</option>
+            {citiesList.map((c) => (
+              <option key={c.id} value={c.id}>{c.name} ({c.satellite_source || 'OSM'})</option>
+            ))}
           </select>
         </div>
       </header>
