@@ -96,7 +96,7 @@ export default function IndexPage() {
           
           <div className="max-w-2xl relative z-10">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-accent/10 text-accent border border-accent/20 mb-4">
-              <Award className="w-3.5 h-3.5" /> ISRO Hackathon Problem Statement 4
+              <Award className="w-3.5 h-3.5" /> ISRO/NRSC National Spatial Mandate PS-4
             </span>
             <h2 className="text-4xl font-extrabold tracking-tight mb-4">
               Occlusion-Robust Road Extraction & Network Resilience
