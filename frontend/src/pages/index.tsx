@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Activity, Map, ShieldAlert, Award, FileText, ChevronRight, BarChart2 } from 'lucide-react';
+import { Activity, Map, ShieldAlert, Award, ChevronRight, BarChart2 } from 'lucide-react';
 import axios from 'axios';
+import { Language, languages, translations } from '../utils/i18n';
 
 interface CityMetadata {
   id: string;
@@ -20,10 +21,27 @@ interface CityMetadata {
 export default function IndexPage() {
   const [cities, setCities] = useState<CityMetadata[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [lang, setLang] = useState<Language>('en');
 
   useEffect(() => {
-    // Fetch cities from backend
+    const savedLang = localStorage.getItem('routeguard_lang') as Language;
+    if (savedLang && ['en', 'es', 'fr', 'de', 'pt', 'ar', 'zh', 'ja', 'hi', 'ru', 'ko'].includes(savedLang)) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  const handleLangChange = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('routeguard_lang', newLang);
+  };
+
+  const t = (key: string) => {
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  };
+
+  const isRtl = lang === 'ar';
+
+  useEffect(() => {
     axios.get('http://localhost:8000/api/v1/cities')
       .then(res => {
         setCities(res.data);
@@ -31,7 +49,6 @@ export default function IndexPage() {
       })
       .catch(err => {
         console.warn('Backend connection failed, using local mock cities.', err);
-        // Direct local mock if backend server is not running yet
         setCities([
           {
             id: 'bengaluru-id',
@@ -65,7 +82,7 @@ export default function IndexPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Premium Header */}
       <header className="border-b border-slate-800 bg-card/60 backdrop-blur-md px-8 py-5 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -82,9 +99,21 @@ export default function IndexPage() {
           </div>
         </div>
         <nav className="flex items-center gap-6">
-          <Link href="/" className="text-sm font-medium text-primary hover:text-white transition-colors">Overview</Link>
-          <Link href="/gis" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">GIS Map</Link>
-          <Link href="/simulation" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Simulations</Link>
+          <Link href="/" className="text-sm font-medium text-primary hover:text-white transition-colors">{t('overview')}</Link>
+          <Link href="/gis" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('gisMap')}</Link>
+          <Link href="/simulation" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('simulations')}</Link>
+          <Link href="/rankings" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('planningAi')}</Link>
+          <Link href="/marketplace" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('apiMarketplace')}</Link>
+          
+          <select
+            value={lang}
+            onChange={(e) => handleLangChange(e.target.value as Language)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer text-slate-300"
+          >
+            {languages.map((l) => (
+              <option key={l.code} value={l.code}>{l.name}</option>
+            ))}
+          </select>
         </nav>
       </header>
 

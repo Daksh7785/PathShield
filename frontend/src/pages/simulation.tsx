@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ShieldAlert, AlertOctagon, RefreshCw, BarChart2, Play, Info } from 'lucide-react';
 import axios from 'axios';
+import { Language, languages, translations } from '../utils/i18n';
 
 // Dynamically load the Leaflet MapComponent
 const MapComponent = dynamic(() => import('../components/MapComponent'), { ssr: false });
@@ -38,6 +39,26 @@ interface SimulationResults {
 }
 
 export default function SimulationPage() {
+  const [lang, setLang] = useState<Language>('en');
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('routeguard_lang') as Language;
+    if (savedLang && ['en', 'es', 'fr', 'de', 'pt', 'ar', 'zh', 'ja', 'hi', 'ru', 'ko'].includes(savedLang)) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  const handleLangChange = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('routeguard_lang', newLang);
+  };
+
+  const t = (key: string) => {
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  };
+
+  const isRtl = lang === 'ar';
+
   const [cityId, setCityId] = useState<string>('bengaluru');
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -134,24 +155,36 @@ export default function SimulationPage() {
   };
 
   return (
-    <div className="h-screen bg-background text-slate-100 flex flex-col overflow-hidden">
+    <div className="h-screen bg-background text-slate-100 flex flex-col overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="border-b border-slate-800 bg-card/60 backdrop-blur-md px-8 py-4 flex items-center justify-between z-50">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">← Dashboard</Link>
+          <Link href="/" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">← {t('dashboardTitle')}</Link>
           <span className="text-slate-600">|</span>
           <h2 className="font-bold text-base tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 flex items-center gap-1">
-            <ShieldAlert className="w-5 h-5 text-alert" /> DISASTER SIMULATION ENGINE
+            <ShieldAlert className="w-5 h-5 text-alert" /> {t('simEngineTitle')}
           </h2>
         </div>
-        <select
-          value={cityId}
-          onChange={(e) => setCityId(e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none"
-        >
-          <option value="bengaluru">Bengaluru (Cartosat-3)</option>
-          <option value="delhi">Delhi (Sentinel-2)</option>
-        </select>
+        <div className="flex items-center gap-4">
+          <select
+            value={lang}
+            onChange={(e) => handleLangChange(e.target.value as Language)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer text-slate-300"
+          >
+            {languages.map((l) => (
+              <option key={l.code} value={l.code}>{l.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={cityId}
+            onChange={(e) => setCityId(e.target.value)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none text-slate-300"
+          >
+            <option value="bengaluru">Bengaluru (Cartosat-3)</option>
+            <option value="delhi">Delhi (Sentinel-2)</option>
+          </select>
+        </div>
       </header>
 
       {/* Main Content Workspace */}
@@ -166,7 +199,7 @@ export default function SimulationPage() {
 
             {/* Scenario Type */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-slate-400">Simulation Type</label>
+              <label className="text-xs font-bold text-slate-400">{t('simulationType')}</label>
               <select
                 value={scenarioType}
                 onChange={(e) => {
@@ -174,7 +207,7 @@ export default function SimulationPage() {
                   setResults(null);
                   setDisabledNodes([]);
                 }}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-300"
               >
                 <option value="ablation">Single Node Ablation</option>
                 <option value="flood">Flood Inundation Zone</option>
@@ -248,11 +281,11 @@ export default function SimulationPage() {
             >
               {loading ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Running Simulation...
+                  <RefreshCw className="w-4 h-4 animate-spin" /> {lang === 'ar' ? 'تشغيل المحاكاة...' : 'Running Simulation...'}
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 fill-current" /> Trigger Simulation
+                  <Play className="w-4 h-4 fill-current" /> {t('triggerSimulation')}
                 </>
               )}
             </button>
@@ -262,18 +295,18 @@ export default function SimulationPage() {
               <div className="mt-4 border-t border-slate-800 pt-5 flex flex-col gap-4 animate-fade-in">
                 <div className="flex items-center gap-2">
                   <BarChart2 className="w-4 h-4 text-accent" />
-                  <span className="text-xs font-bold text-slate-300 uppercase">Impact Analysis</span>
+                  <span className="text-xs font-bold text-slate-300 uppercase">{t('impactAnalysis')}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
-                    <span className="text-[9px] uppercase text-slate-400 font-bold block">Resilience Index</span>
+                    <span className="text-[9px] uppercase text-slate-400 font-bold block">{t('resilienceIndex')}</span>
                     <span className={`text-lg font-bold ${results.critical ? 'text-alert' : 'text-success'}`}>
                       {(results.resilience_index * 100).toFixed(1)}%
                     </span>
                   </div>
                   <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
-                    <span className="text-[9px] uppercase text-slate-400 font-bold block">LCC Loss Size</span>
+                    <span className="text-[9px] uppercase text-slate-400 font-bold block">{t('lccLossSize')}</span>
                     <span className="text-lg font-bold text-orange-500">
                       {results.lcc_loss_percent.toFixed(1)}%
                     </span>
@@ -283,7 +316,7 @@ export default function SimulationPage() {
                 <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex gap-2">
                   <AlertOctagon className="w-5 h-5 text-alert shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-[9px] uppercase text-slate-400 font-bold block">Planner Recommendation</span>
+                    <span className="text-[9px] uppercase text-slate-400 font-bold block">{t('recommendation')}</span>
                     <p className="text-xs text-slate-300 leading-normal mt-1">{results.recommendation_text}</p>
                   </div>
                 </div>

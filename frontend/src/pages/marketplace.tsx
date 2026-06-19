@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Activity, Code, Server, ShieldCheck, Zap, Play, Terminal, Database, Copy, Check } from 'lucide-react';
+import { Language, languages, translations } from '../utils/i18n';
 
 interface ApiEndpoint {
   name: string;
@@ -12,6 +13,26 @@ interface ApiEndpoint {
 }
 
 export default function MarketplacePage() {
+  const [lang, setLang] = useState<Language>('en');
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('routeguard_lang') as Language;
+    if (savedLang && ['en', 'es', 'fr', 'de', 'pt', 'ar', 'zh', 'ja', 'hi', 'ru', 'ko'].includes(savedLang)) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  const handleLangChange = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('routeguard_lang', newLang);
+  };
+
+  const t = (key: string) => {
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  };
+
+  const isRtl = lang === 'ar';
+
   const [activeTab, setActiveTab] = useState<'apis' | 'analytics'>('apis');
   const [selectedApiIndex, setSelectedApiIndex] = useState<number>(0);
   const [copied, setCopied] = useState(false);
@@ -112,7 +133,7 @@ export default function MarketplacePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Premium Header */}
       <header className="border-b border-slate-800 bg-card/60 backdrop-blur-md px-8 py-5 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -129,11 +150,21 @@ export default function MarketplacePage() {
           </div>
         </div>
         <nav className="flex items-center gap-6">
-          <Link href="/" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Overview</Link>
-          <Link href="/gis" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">GIS Map</Link>
-          <Link href="/simulation" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Simulations</Link>
-          <Link href="/rankings" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Planning AI</Link>
-          <Link href="/marketplace" className="text-sm font-medium text-primary hover:text-white transition-colors">API Marketplace</Link>
+          <Link href="/" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('overview')}</Link>
+          <Link href="/gis" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('gisMap')}</Link>
+          <Link href="/simulation" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('simulations')}</Link>
+          <Link href="/rankings" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('planningAi')}</Link>
+          <Link href="/marketplace" className="text-sm font-medium text-primary hover:text-white transition-colors">{t('apiMarketplace')}</Link>
+          
+          <select
+            value={lang}
+            onChange={(e) => handleLangChange(e.target.value as Language)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer text-slate-300"
+          >
+            {languages.map((l) => (
+              <option key={l.code} value={l.code}>{l.name}</option>
+            ))}
+          </select>
         </nav>
       </header>
 
@@ -142,7 +173,7 @@ export default function MarketplacePage() {
         {/* Toggle tabs */}
         <div className="flex justify-between items-center border-b border-slate-800 pb-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-wide">Developer Hub & SaaS Marketplace</h2>
+            <h2 className="text-2xl font-bold tracking-wide">{t('apiMarketplaceTitle')}</h2>
             <p className="text-xs text-slate-400">Deploy serverless GIS & Graph operations inside your own software suites</p>
           </div>
           <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 flex gap-2">
@@ -152,7 +183,7 @@ export default function MarketplacePage() {
                 activeTab === 'apis' ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Developer APIs
+              {t('developerApis')}
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
@@ -160,7 +191,7 @@ export default function MarketplacePage() {
                 activeTab === 'analytics' ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              SaaS Analytics
+              {t('saasAnalytics')}
             </button>
           </div>
         </div>
@@ -198,7 +229,7 @@ export default function MarketplacePage() {
             <div className="lg:col-span-2 flex flex-col gap-6 bg-slate-900/40 border border-slate-800 p-6 rounded-2xl">
               <div>
                 <h3 className="text-base font-bold mb-1 flex items-center gap-1.5">
-                  <Terminal className="w-4 h-4 text-primary" /> API Request Playground
+                  <Terminal className="w-4 h-4 text-primary" /> {t('playgroundTitle')}
                 </h3>
                 <code className="text-xs font-mono text-slate-300 bg-slate-950 px-2 py-1 rounded select-all">
                   {apis[selectedApiIndex].method} http://localhost:8000{apis[selectedApiIndex].path}
@@ -231,7 +262,7 @@ export default function MarketplacePage() {
                   className="bg-primary hover:bg-primary/95 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-lg shadow-primary/20"
                 >
                   <Play className="w-3.5 h-3.5" />
-                  {apiLoading ? 'Invoking...' : 'Test Request'}
+                  {apiLoading ? (lang === 'ar' ? 'جاري الطلب...' : 'Invoking...') : t('testRequest')}
                 </button>
               </div>
 
@@ -249,17 +280,17 @@ export default function MarketplacePage() {
         ) : (
           <div className="grid md:grid-cols-3 gap-6">
             <div className="glass-panel p-6 rounded-2xl flex flex-col gap-1.5 border border-slate-800">
-              <span className="text-xs text-slate-400 font-bold block">Total API Invocations (This Month)</span>
+              <span className="text-xs text-slate-400 font-bold block">{t('saasInvocations')} ({lang === 'ar' ? 'هذا الشهر' : 'This Month'})</span>
               <span className="text-3xl font-extrabold text-primary">1,482,904</span>
               <span className="text-[10px] text-success font-semibold">↑ 14.8% vs last month</span>
             </div>
             <div className="glass-panel p-6 rounded-2xl flex flex-col gap-1.5 border border-slate-800">
-              <span className="text-xs text-slate-400 font-bold block">Average API Latency</span>
+              <span className="text-xs text-slate-400 font-bold block">{t('saasLatency')}</span>
               <span className="text-3xl font-extrabold text-success">42ms</span>
               <span className="text-[10px] text-slate-500 font-semibold">Optimized via Redis Cache & PostGIS index</span>
             </div>
             <div className="glass-panel p-6 rounded-2xl flex flex-col gap-1.5 border border-slate-800">
-              <span className="text-xs text-slate-400 font-bold block">Active Subscriptions</span>
+              <span className="text-xs text-slate-400 font-bold block">{t('saasSubscriptions')}</span>
               <span className="text-3xl font-extrabold text-accent">18 Organizations</span>
               <span className="text-[10px] text-slate-500 font-semibold">ISRO, NRSC, Delhi Planning Commission</span>
             </div>

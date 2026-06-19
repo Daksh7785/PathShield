@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Activity, Layers, ArrowLeftRight, Settings, Eye, Zap, Search, AlertTriangle, ShieldAlert } from 'lucide-react';
 import axios from 'axios';
 import CopilotChat from '../components/CopilotChat';
+import { Language, languages, translations } from '../utils/i18n';
 
 // Dynamically load the Leaflet MapComponent to avoid SSR window errors
 const MapComponent = dynamic(() => import('../components/MapComponent'), {
@@ -38,6 +39,26 @@ interface Edge {
 }
 
 export default function GisPage() {
+  const [lang, setLang] = useState<Language>('en');
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('routeguard_lang') as Language;
+    if (savedLang && ['en', 'es', 'fr', 'de', 'pt', 'ar', 'zh', 'ja', 'hi', 'ru', 'ko'].includes(savedLang)) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  const handleLangChange = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('routeguard_lang', newLang);
+  };
+
+  const t = (key: string) => {
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  };
+
+  const isRtl = lang === 'ar';
+
   const [cityId, setCityId] = useState<string>('bengaluru');
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -213,14 +234,14 @@ export default function GisPage() {
     : [];
 
   return (
-    <div className="h-screen bg-background text-slate-100 flex flex-col overflow-hidden font-sans">
+    <div className="h-screen bg-background text-slate-100 flex flex-col overflow-hidden font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="border-b border-slate-800 bg-card/60 backdrop-blur-md px-8 py-4 flex items-center justify-between z-50">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">← Dashboard</Link>
+          <Link href="/" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">← {t('dashboardTitle')}</Link>
           <span className="text-slate-600">|</span>
           <h2 className="font-bold text-base tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-            GIS WORKBENCH
+            {t('gisWorkbench')}
           </h2>
         </div>
         
@@ -230,7 +251,7 @@ export default function GisPage() {
             <Search className="w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search global city or coordinates..."
+              placeholder={t('placeholderSearch')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent text-xs text-slate-300 focus:outline-none w-52"
@@ -245,9 +266,19 @@ export default function GisPage() {
           </form>
 
           <select
+            value={lang}
+            onChange={(e) => handleLangChange(e.target.value as Language)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer text-slate-300"
+          >
+            {languages.map((l) => (
+              <option key={l.code} value={l.code}>{l.name}</option>
+            ))}
+          </select>
+
+          <select
             value={cityId}
             onChange={(e) => setCityId(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer"
+            className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer text-slate-300"
           >
             <option value="bengaluru">Bengaluru (Cartosat-3)</option>
             <option value="delhi">Delhi (Sentinel-2)</option>
@@ -265,14 +296,14 @@ export default function GisPage() {
           <div className="flex flex-col gap-6">
             <div>
               <h3 className="text-sm font-bold tracking-wider uppercase mb-1 flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-primary" /> Visual Layers
+                <Layers className="w-4 h-4 text-primary" /> {t('visualLayers')}
               </h3>
               <p className="text-[10px] text-slate-400">Configure map visual overrides</p>
             </div>
 
             {/* Heatmaps */}
             <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold text-slate-400 block">Criticality Overlay</span>
+              <span className="text-xs font-bold text-slate-400 block">{t('criticalityOverlay')}</span>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setHeatmap(heatmap === 'centrality' ? null : 'centrality')}
@@ -280,7 +311,7 @@ export default function GisPage() {
                     heatmap === 'centrality' ? 'bg-primary/20 border-primary text-primary' : 'bg-slate-900/50 border-slate-800 text-slate-300'
                   }`}
                 >
-                  Centrality
+                  {t('centrality')}
                 </button>
                 <button
                   onClick={() => setHeatmap(heatmap === 'confidence' ? null : 'confidence')}
@@ -288,7 +319,7 @@ export default function GisPage() {
                     heatmap === 'confidence' ? 'bg-accent/20 border-accent text-accent' : 'bg-slate-900/50 border-slate-800 text-slate-300'
                   }`}
                 >
-                  Confidence
+                  {t('confidence')}
                 </button>
               </div>
             </div>
@@ -297,7 +328,7 @@ export default function GisPage() {
             <div className="flex items-center justify-between border-t border-slate-800/60 pt-4">
               <div className="flex flex-col gap-0.5">
                 <span className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                  <ShieldAlert className="w-3.5 h-3.5 text-red-500" /> Active Hazards
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-500" /> {t('activeHazards')}
                 </span>
                 <span className="text-[9px] text-slate-400">NASA FIRMS & GDACS feed</span>
               </div>
@@ -315,7 +346,7 @@ export default function GisPage() {
             {incidents.length > 0 && (
               <div className="flex flex-col gap-2 border-t border-slate-800/60 pt-4">
                 <span className="text-xs font-bold text-slate-400 block flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-500" /> Traffic Advisories ({incidents.length})
+                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-500" /> {t('trafficAdvisories')} ({incidents.length})
                 </span>
                 <div className="max-h-24 overflow-y-auto flex flex-col gap-1.5 pr-1 border border-slate-800/60 rounded-lg p-2 bg-slate-950/20">
                   {incidents.map((inc, i) => (
@@ -334,7 +365,7 @@ export default function GisPage() {
             {/* Route Planning */}
             <div className="flex flex-col gap-3 border-t border-slate-800/60 pt-4">
               <span className="text-xs font-bold text-slate-400 block flex items-center gap-1">
-                <ArrowLeftRight className="w-3.5 h-3.5" /> Detour Routing Planner
+                <ArrowLeftRight className="w-3.5 h-3.5" /> {t('routingPlanner')}
               </span>
               
               <div className="flex flex-col gap-2">
@@ -369,7 +400,7 @@ export default function GisPage() {
                   onClick={handleComputeRoute}
                   className="w-full bg-primary py-2 rounded-lg text-xs font-bold hover:bg-primary/95 transition-all mt-2"
                 >
-                  Calculate Routes
+                  {t('calculateRoutes')}
                 </button>
               </div>
             </div>
@@ -378,12 +409,12 @@ export default function GisPage() {
             {shortestPath.length > 0 && (
               <div className="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex flex-col gap-3 animate-fade-in">
                 <div>
-                  <span className="text-[10px] uppercase text-slate-400 font-bold block">Shortest Path Route</span>
+                  <span className="text-[10px] uppercase text-slate-400 font-bold block">{t('shortestPath')}</span>
                   <span className="text-sm font-bold text-primary">{distance.toFixed(1)} meters</span>
                 </div>
                 {alternativePath.length > 0 && (
                   <div>
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block">Alternative Path Detour</span>
+                    <span className="text-[10px] uppercase text-slate-400 font-bold block">{t('alternativePath')}</span>
                     <span className="text-sm font-bold text-success">{altDistance.toFixed(1)} meters</span>
                   </div>
                 )}

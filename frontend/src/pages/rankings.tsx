@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Activity, BarChart2, ShieldAlert, Award, FileText, ChevronRight, HelpCircle, Download, FileSpreadsheet, Layers, Sparkles } from 'lucide-react';
+import { Language, languages, translations } from '../utils/i18n';
 
 interface CityRanking {
   rank: number;
@@ -13,6 +14,26 @@ interface CityRanking {
 }
 
 export default function RankingsPage() {
+  const [lang, setLang] = useState<Language>('en');
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('routeguard_lang') as Language;
+    if (savedLang && ['en', 'es', 'fr', 'de', 'pt', 'ar', 'zh', 'ja', 'hi', 'ru', 'ko'].includes(savedLang)) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  const handleLangChange = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('routeguard_lang', newLang);
+  };
+
+  const t = (key: string) => {
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  };
+
+  const isRtl = lang === 'ar';
+
   const [activeSegment, setActiveSegment] = useState<'rankings' | 'planning' | 'reports'>('rankings');
   
   // Smart planning inputs
@@ -57,7 +78,7 @@ export default function RankingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Premium Header */}
       <header className="border-b border-slate-800 bg-card/60 backdrop-blur-md px-8 py-5 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -74,11 +95,21 @@ export default function RankingsPage() {
           </div>
         </div>
         <nav className="flex items-center gap-6">
-          <Link href="/" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Overview</Link>
-          <Link href="/gis" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">GIS Map</Link>
-          <Link href="/simulation" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Simulations</Link>
-          <Link href="/rankings" className="text-sm font-medium text-primary hover:text-white transition-colors">Planning AI</Link>
-          <Link href="/marketplace" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">API Marketplace</Link>
+          <Link href="/" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('overview')}</Link>
+          <Link href="/gis" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('gisMap')}</Link>
+          <Link href="/simulation" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('simulations')}</Link>
+          <Link href="/rankings" className="text-sm font-medium text-primary hover:text-white transition-colors">{t('planningAi')}</Link>
+          <Link href="/marketplace" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">{t('apiMarketplace')}</Link>
+          
+          <select
+            value={lang}
+            onChange={(e) => handleLangChange(e.target.value as Language)}
+            className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer text-slate-300"
+          >
+            {languages.map((l) => (
+              <option key={l.code} value={l.code}>{l.name}</option>
+            ))}
+          </select>
         </nav>
       </header>
 
@@ -87,7 +118,7 @@ export default function RankingsPage() {
         {/* Navigation Tabs */}
         <div className="flex justify-between items-center border-b border-slate-800 pb-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-wide">Urban Benchmarking & Planning Center</h2>
+            <h2 className="text-2xl font-bold tracking-wide">{t('planningCenter')}</h2>
             <p className="text-xs text-slate-400">Measure resilience ratios and build smart infrastructure recommendations</p>
           </div>
           <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 flex gap-2">
@@ -97,7 +128,7 @@ export default function RankingsPage() {
                 activeSegment === 'rankings' ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Resilience Rankings
+              {t('resRankings')}
             </button>
             <button
               onClick={() => setActiveSegment('planning')}
@@ -105,7 +136,7 @@ export default function RankingsPage() {
                 activeSegment === 'planning' ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Smart Planning AI
+              {t('smartPlanning')}
             </button>
             <button
               onClick={() => setActiveSegment('reports')}
@@ -113,7 +144,7 @@ export default function RankingsPage() {
                 activeSegment === 'reports' ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Export Center
+              {t('exportCenter')}
             </button>
           </div>
         </div>
@@ -129,7 +160,7 @@ export default function RankingsPage() {
                       <th className="py-3 pl-4">Rank</th>
                       <th className="py-3">City</th>
                       <th className="py-3">Country</th>
-                      <th className="py-3">Resilience Index</th>
+                      <th className="py-3">{t('resilienceIndex')}</th>
                       <th className="py-3">Accessibility</th>
                       <th className="py-3">Connectivity</th>
                       <th className="py-3">Emergency Readiness</th>
@@ -168,7 +199,7 @@ export default function RankingsPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-slate-400 font-semibold uppercase">Proposed Location Start</label>
+                <label className="text-[10px] text-slate-400 font-semibold uppercase">{t('proposedStart')}</label>
                 <input
                   type="number"
                   value={sourceNode}
@@ -178,7 +209,7 @@ export default function RankingsPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-slate-400 font-semibold uppercase">Proposed Location End</label>
+                <label className="text-[10px] text-slate-400 font-semibold uppercase">{t('proposedEnd')}</label>
                 <input
                   type="number"
                   value={targetNode}
@@ -188,11 +219,11 @@ export default function RankingsPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-slate-400 font-semibold uppercase">Infrastructure Project Type</label>
+                <label className="text-[10px] text-slate-400 font-semibold uppercase">{t('projectType')}</label>
                 <select
                   value={projectType}
                   onChange={(e) => setProjectType(e.target.value as any)}
-                  className="bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none cursor-pointer"
+                  className="bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none cursor-pointer text-slate-300"
                 >
                   <option value="flyover">Arterial Flyover Corridor</option>
                   <option value="bridge">Topological Gap Bridge</option>
@@ -206,7 +237,10 @@ export default function RankingsPage() {
                 className="bg-primary hover:bg-primary/95 text-white font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-primary/20"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                {planningLoading ? 'Evaluating Urban Graph...' : 'Generate Planning Recommendation'}
+                {planningLoading 
+                  ? (lang === 'ar' ? 'تقييم الرسم البياني...' : 'Evaluating Urban Graph...') 
+                  : t('runPlanning')
+                }
               </button>
             </form>
 
