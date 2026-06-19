@@ -1,6 +1,14 @@
 """
 Shared PyTest fixtures for Route Resilience unit and integration tests.
 """
+import os
+import sys
+
+# Configure sys.path to resolve imports directly from the service engines
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../graph-engine')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../gis-engine')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../ai-engine')))
+
 import pytest
 import numpy as np
 import networkx as nx
