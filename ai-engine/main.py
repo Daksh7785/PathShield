@@ -84,21 +84,30 @@ def predict(req: PredictRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
+def make_synthetic_patch() -> tuple:
+    import cv2
+    rng = np.random.default_rng(42)
+    img = rng.uniform(40, 100, (256, 256, 3)).astype(np.uint8)
+    mask = np.zeros((256, 256), dtype=np.uint8)
+    # Draw simulated road lines
+    cv2.line(img, (0, 128), (256, 128), (120, 120, 120), 10)
+    cv2.line(mask, (0, 128), (256, 128), 255, 10)
+    return img, mask
+
 @app.get("/benchmark")
 def benchmark():
-    # Return mock benchmark results for the models
-    return {
-        "models": {
-            "U-Net": {"IoU": 0.725, "Dice": 0.840, "Precision": 0.835, "Recall": 0.845, "OcclusionRecall": 0.650},
-            "UNet++": {"IoU": 0.758, "Dice": 0.862, "Precision": 0.855, "Recall": 0.870, "OcclusionRecall": 0.690},
-            "DeepLabV3+": {"IoU": 0.782, "Dice": 0.878, "Precision": 0.880, "Recall": 0.876, "OcclusionRecall": 0.725},
-            "SegFormer": {"IoU": 0.834, "Dice": 0.910, "Precision": 0.908, "Recall": 0.912, "OcclusionRecall": 0.810},
-            "Swin Transformer": {"IoU": 0.828, "Dice": 0.906, "Precision": 0.902, "Recall": 0.910, "OcclusionRecall": 0.802},
-            "Mask2Former": {"IoU": 0.845, "Dice": 0.916, "Precision": 0.915, "Recall": 0.918, "OcclusionRecall": 0.835},
-            "ViT-B/32 (Selected)": {"IoU": 0.852, "Dice": 0.920, "Precision": 0.918, "Recall": 0.922, "OcclusionRecall": 0.850}
-        },
-        "selected_model": "ViT-B/32"
-    }
+    from inference.benchmark import ModelBenchmarkingEngine
+    try:
+        img, mask = make_synthetic_patch()
+        engine = ModelBenchmarkingEngine(seed=42)
+        results, best_model = engine.benchmark_all_models(img, mask)
+        return {
+            "models": results,
+            "selected_model": best_model
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Benchmarking failed: {str(e)}")
+
 
 class OrchestrateRequest(BaseModel):
     task_type: str

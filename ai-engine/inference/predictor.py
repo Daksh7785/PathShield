@@ -105,3 +105,16 @@ class RoadPredictor:
         prob = self.predict_tile(image)
         return (prob > self.threshold).astype(np.uint8) * 255
 
+    def predict_patch(self, image: np.ndarray) -> tuple:
+        """
+        Predict road mask and confidence/uncertainty.
+        image: (H, W, 3) uint8 RGB
+        returns: (mask, confidence) where:
+            mask is (H, W) binary array [0 or 1]
+            confidence is (H, W) float32 probability map [0.0, 1.0]
+        """
+        prob = self.predict_tile(image)
+        mask = (prob > self.threshold).astype(np.uint8)
+        return mask, prob
+
+
